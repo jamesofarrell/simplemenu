@@ -12,6 +12,7 @@
 #include "../headers/globals.h"
 #include "../headers/screen.h"
 #include "../headers/string_utils.h"
+#include "../headers/system_logic.h"
 
 char *getCurrentGameName() {
 	char * name = malloc(strlen(CURRENT_GAME_NAME)+1);
@@ -24,6 +25,7 @@ void quit() {
 	freeResources();
 	saveLastState();
 	saveFavorites();
+	clearTimer();
 	execlp("sh", "sh", "-c", "sync && poweroff", NULL);
 }
 
@@ -207,9 +209,9 @@ int recursivelyScanDirectory1 (char *directory, char* files[], int i)
 	return i;
 }
 
-void loadGameList() {
+void loadGameList(int refresh) {
 	int loadedFiles=0;
-	if (CURRENT_SECTION.gameList[0][0] == NULL) {
+	if (CURRENT_SECTION.gameList[0][0] == NULL||refresh) {
 		CURRENT_SECTION.totalPages=0;
 		char *files[8000];
 		int n = recursivelyScanDirectory1(CURRENT_SECTION.filesDirectory, files, 0);
@@ -257,6 +259,16 @@ int countGamesInPage() {
 	return gamesCounter;
 }
 
+int countGamesInSpecificPage(int page) {
+	int gamesCounter=0;
+	for (int i=0;i<ITEMS_PER_PAGE;i++) {
+		if (CURRENT_SECTION.gameList[page][i]!=NULL) {
+			gamesCounter++;
+		}
+	}
+	return gamesCounter;
+}
+
 int getFirstNonHiddenSection(int sectionCount) {
 	for (int i=0;i<sectionCount;i++) {
 		if (menuSections[i].hidden==0) {
@@ -266,21 +278,39 @@ int getFirstNonHiddenSection(int sectionCount) {
 	return 0;
 }
 
+void selectRandomGame() {
+	int gamesInSection = countGamesInSection();
+	if (gamesInSection%10==0) {
+		CURRENT_SECTION.currentPage = rand() % ((int)gamesInSection/10);
+	} else {
+		CURRENT_SECTION.currentPage = rand() % ((int)(gamesInSection/10) +1);
+	}
+	CURRENT_SECTION.currentGame = rand() % countGamesInPage();
+}
+
 void determineStartingScreen(int sectionCount) {
 	if(sectionCount==0||currentSectionNumber==favoritesSectionNumber) {
 		favoritesSectionSelected=1;
 		loadFavoritesSectionGameList();
 	} else {
-		loadGameList();
+		loadGameList(0);
 		if(CURRENT_SECTION.hidden) {
 			int advanced = advanceSection();
-			loadGameList();
+			loadGameList(0);
 			if(advanced) {
 				while(CURRENT_SECTION.hidden) {
 					advanceSection();
-					loadGameList();
+					loadGameList(0);
 				}
 			}
 		}
 	}
 }
+
+void deleteCurrentGame() {
+	char command [300];
+	snprintf(command,sizeof(command),"rm \"%s\";",CURRENT_GAME_NAME);
+	system(command);
+	CURRENT_SECTION.gameList[CURRENT_SECTION.totalPages][countGamesInSpecificPage(CURRENT_SECTION.totalPages)-1]=NULL;
+}
+
