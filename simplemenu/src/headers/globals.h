@@ -1,7 +1,9 @@
 #ifndef GLOBALS_DEFINED
 #define GLOBALS_DEFINED
-#include <SDL/SDL_events.h>
+
+#include <SDL/SDL_timer.h>
 #include <SDL/SDL_video.h>
+
 int running;
 
 int favoritesSectionNumber;
@@ -17,13 +19,26 @@ int gamesInPage;
 int currentCPU;
 int pictureMode;
 int hotKeyPressed;
+int leftOrRightPressed;
+
+int OC_UC;
+int OC_NO;
+int OC_OC;
+int OC_SLEEP;
+
+SDL_TimerID timeoutTimer;
+int timeoutValue;
+int isSuspended;
+int isUSBMode;
+int backlightValue;
 
 struct MenuSection {
 	char sectionName[25];
-	char emulatorFolder[25];
-	char executable[16];
-	char filesDirectory[25];
+	char emulatorFolder[200];
+	char executable[200];
+	char filesDirectory[200];
 	char fileExtensions[50];
+	char consolePicture[100];
 	int hidden;
 	int currentPage;
 	int currentGame;
@@ -40,10 +55,10 @@ struct MenuSection {
 struct MenuSection menuSections[50];
 
 struct Favorite {
-	char name[100];
-	char emulatorFolder[25];
-	char executable[16];
-	char filesDirectory[25];
+	char name[300];
+	char emulatorFolder[200];
+	char executable[200];
+	char filesDirectory[200];
     struct Favorite *next;
 };
 

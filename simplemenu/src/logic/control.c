@@ -6,6 +6,7 @@
 #include "../headers/config.h"
 #include "../headers/definitions.h"
 #include "../headers/globals.h"
+#include "../headers/graphics.h"
 #include "../headers/logic.h"
 #include "../headers/screen.h"
 #include "../headers/string_utils.h"
@@ -41,14 +42,14 @@ void launchGame() {
 	char fileToBeExecutedwithFullPath[2000];
 	if (favoritesSectionSelected && favoritesSize > 0) {
 		struct Favorite favorite = findFavorite(CURRENT_GAME_NAME);
-//		strcpy(fileToBeExecutedwithFullPath,favorite.filesDirectory);
+		//		strcpy(fileToBeExecutedwithFullPath,favorite.filesDirectory);
 		strcat(fileToBeExecutedwithFullPath,favorite.name);
-//		printf("./invoker.elf %s%s %s\n ",favorite.emulatorFolder, favorite.executable, CURRENT_GAME_NAME);
+		//		printf("./invoker.elf %s%s %s\n ",favorite.emulatorFolder, favorite.executable, CURRENT_GAME_NAME);
 		executeCommand(favorite.emulatorFolder,favorite.executable,CURRENT_GAME_NAME);
 	} else if (CURRENT_GAME_NAME!=NULL) {
-//		strcpy(fileToBeExecutedwithFullPath,CURRENT_SECTION.filesDirectory);
+		//		strcpy(fileToBeExecutedwithFullPath,CURRENT_SECTION.filesDirectory);
 		strcat(fileToBeExecutedwithFullPath,CURRENT_GAME_NAME);
-//		printf("./invoker.elf %s%s %s\n ",CURRENT_SECTION.emulatorFolder, CURRENT_SECTION.executable, CURRENT_GAME_NAME);
+		//		printf("./invoker.elf %s%s %s\n ",CURRENT_SECTION.emulatorFolder, CURRENT_SECTION.executable, CURRENT_GAME_NAME);
 		executeCommand(CURRENT_SECTION.emulatorFolder, CURRENT_SECTION.executable,CURRENT_GAME_NAME);
 	}
 }
@@ -163,7 +164,7 @@ void rewindPage() {
 			strcpy(previousGame, PREVIOUS_GAME_NAME);
 			stripGameName(previousGame);
 			if ( (tolower(currentGame[0])==tolower(previousGame[0])) ||
-				 (isdigit(currentGame[0])&&isdigit(previousGame[0]))) {
+					(isdigit(currentGame[0])&&isdigit(previousGame[0]))) {
 
 				if (CURRENT_SECTION.currentPage==0&&CURRENT_SECTION.currentGame==0) {
 					hitStart = 1;
@@ -197,7 +198,7 @@ void showOrHideFavorites() {
 		favoritesSectionSelected=0;
 		currentSectionNumber=returnTo;
 		determineStartingScreen(menuSectionCounter);
-//		loadGameList();
+		//		loadGameList();
 		return;
 	}
 	favoritesSectionSelected=1;
@@ -245,15 +246,53 @@ int isSelectPressed() {
 }
 
 int performAction() {
+	if (keys[BTN_R] && keys[BTN_START]) {
+		freeResources();
+		saveLastState();
+		saveFavorites();
+		exit(0);
+	}
+	if (keys[BTN_START]&&isUSBMode) {
+		hotKeyPressed=0;
+		isUSBMode=0;
+		system("./usb_mode_off.sh");
+		return 0;
+	}
 	if(keys[BTN_A]) {
-		if (keys[BTN_DOWN]) {
+		if (keys[BTN_TB]&&!leftOrRightPressed) {
+			deleteCurrentGame(CURRENT_GAME_NAME);
+			loadGameList(1);
+			if(CURRENT_GAME_NAME==NULL) {
+				scrollUp();
+			}
+			while(CURRENT_SECTION.hidden) {
+				rewindSection();
+				loadGameList(0);
+			}
+			setupDecorations();
+		}
+//		if (keys[BTN_START]&&!leftOrRightPressed) {
+//			hotKeyPressed=0;
+//			isUSBMode = 1;
+//			system("./usb_mode_on.sh");
+//		}
+		if (keys[BTN_SELECT]&&!leftOrRightPressed) {
+			for(int i=0;i<100;i++) {
+				selectRandomGame();
+				updateScreen();
+			}
+			saveFavorites();
+			freeResources();
+			launchGame();
+		}	
+		if (keys[BTN_DOWN]&&!leftOrRightPressed) {
 			hotKeyPressed=1;
 			CURRENT_SECTION.alphabeticalPaging=1;
 			advancePage();
 			CURRENT_SECTION.alphabeticalPaging=0;
 			return 0;
 		}
-		if (keys[BTN_UP]) {
+		if (keys[BTN_UP]&&!leftOrRightPressed) {
 			hotKeyPressed=1;
 			CURRENT_SECTION.alphabeticalPaging=1;
 			rewindPage();
@@ -264,11 +303,15 @@ int performAction() {
 			hotKeyPressed=0;
 			int advanced = advanceSection();
 			if(advanced) {
-				loadGameList();
+				leftOrRightPressed=1;
+				loadGameList(0);
 				while(CURRENT_SECTION.hidden) {
 					advanceSection();
-					loadGameList();
+					loadGameList(0);
 				}
+				displayBackgroundPicture();
+				showConsole();
+				refreshScreen();
 			}
 			return 0;
 		}
@@ -276,54 +319,50 @@ int performAction() {
 			hotKeyPressed=0;
 			int rewinded = rewindSection();
 			if(rewinded) {
-				loadGameList();
+				leftOrRightPressed=1;
+				loadGameList(0);
 				while(CURRENT_SECTION.hidden) {
 					rewindSection();
-					loadGameList();
+					loadGameList(0);
+				}
+				displayBackgroundPicture();
+				showConsole();
+				refreshScreen();
+			}
+			return 0;
+		}
+	}
+
+	if (!hotKeyPressed&&!leftOrRightPressed&&!isUSBMode) {
+		if(keys[BTN_LB]) {
+			hotKeyPressed=0;
+			int rewinded = rewindSection();
+			if(rewinded) {
+				loadGameList(0);
+				while(CURRENT_SECTION.hidden) {
+					rewindSection();
+					loadGameList(0);
 				}
 			}
 			return 0;
 		}
-	}
-
-	if(keys[BTN_LB]) {
-		hotKeyPressed=0;
-		int rewinded = rewindSection();
-		if(rewinded) {
-			loadGameList();
-			while(CURRENT_SECTION.hidden) {
-				rewindSection();
-				loadGameList();
+		if(keys[BTN_RB]) {
+			hotKeyPressed=0;
+			int advanced = advanceSection();
+			if(advanced) {
+				loadGameList(0);
+				while(CURRENT_SECTION.hidden) {
+					advanceSection();
+					loadGameList(0);
+				}
 			}
+			return 0;
 		}
-		return 0;
-	}
-
-	if(keys[BTN_RB]) {
-		hotKeyPressed=0;
-		int advanced = advanceSection();
-		if(advanced) {
-			loadGameList();
-			while(CURRENT_SECTION.hidden) {
-				advanceSection();
-				loadGameList();
-			}
-		}
-		return 0;
-	}
-
-	if (!hotKeyPressed) {
 		if (keys[BTN_SELECT] && keys[BTN_START]) {
 			running=0;
 			return 0;
 		}
-		if (keys[BTN_R] && keys[BTN_START]) {
-			freeResources();
-			saveLastState();
-			saveFavorites();
-			exit(0);
-		}
-		if (keys[BTN_B]) {
+		if (keys[BTN_TB]) {
 			if (!favoritesSectionSelected) {
 				markAsFavorite();
 			} else {
@@ -348,7 +387,7 @@ int performAction() {
 			}
 			return 0;
 		}
-		if (keys[BTN_TB]) {
+		if (keys[BTN_B]) {
 			if (pictureMode) {
 				pictureMode=0;
 			} else {

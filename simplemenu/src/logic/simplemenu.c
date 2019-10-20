@@ -1,7 +1,5 @@
-#include <dirent.h>
-#include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
+#include <time.h>
 
 #include "../headers/config.h"
 #include "../headers/control.h"
@@ -19,16 +17,19 @@ void initializeGlobals() {
 	CURRENT_SECTION.totalPages=0;
 	favoritesSectionNumber=0;
 	favoritesSize=0;
-	currentCPU=MED_OC;
+	currentCPU=OC_NO;
 	favoritesSectionSelected=0;
 	favoritesChanged=0;
 	pictureMode=0;
+	backlightValue = getBacklight();
+	srand(time(0));
 }
 
 int main(int argc, char* argv[]) {
-	HW_Init();
+	loadConfig();
 	initializeGlobals();
-	int sectionCount=loadConfig();
+	HW_Init();
+	int sectionCount=loadSections();
 	loadFavorites();
 	if (argv[1]!=NULL) {
 		setSectionsState(argv[1]);
@@ -39,17 +40,22 @@ int main(int argc, char* argv[]) {
 		loadLastState();
 	}
 	setupDisplay();
+	initSuspendTimer();
 	determineStartingScreen(sectionCount);
 	updateScreen();
 	enableKeyRepeat(500.180);
 	while (running) {
 		while(pollEvent()){
 			if(getEventType()==getKeyDown()){
-				performAction();
-				updateScreen();
+				if (!isSuspended) {
+					performAction();
+					updateScreen();
+				}
+				resetTimeoutTimer();
 			} else if (getEventType()==getKeyUp()) {
 				if(getPressedKey()==BTN_A) {
 					hotKeyPressed=0;
+					leftOrRightPressed=0;
 					updateScreen();
 				}
 			}

@@ -1,5 +1,6 @@
 #include <ctype.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <SDL/SDL_video.h>
 
@@ -51,6 +52,11 @@ void showLetter() {
 	free(currentGame);
 }
 
+
+void showConsole() {
+	displayImageOnScreen(CURRENT_SECTION.consolePicture, "PICTURE NOT FOUND");
+}
+
 void displayGamePicture() {
 	int rgbColor[] = {21, 18, 26};
 	char gameNameFullPath[200]="";
@@ -76,15 +82,20 @@ void displayGamePicture() {
 	drawRectangleOnScreen(SCREEN_WIDTH, calculateProportionalSizeOrDistance(18), 0, 222, rgbColor);
 	drawPictureTextOnScreen(nameToDisplay);
 }
+
+void displayBackgroundPicture() {
+	displayImageOnScreen("./resources/back.png", "NO SCREENSHOT");
+}
+
 void drawHeader() {
 	char finalString [100];
 	int rgbColor[] = {menuSections[currentSectionNumber].headerAndFooterTextBackgroundColor.r,menuSections[currentSectionNumber].headerAndFooterTextBackgroundColor.g,menuSections[currentSectionNumber].headerAndFooterTextBackgroundColor.b};
 	drawRectangleOnScreen(SCREEN_WIDTH, calculateProportionalSizeOrDistance(22), 0, 0, rgbColor);
-	if (currentCPU==NO_OC) {
+	if (currentCPU==OC_UC) {
 		strcpy(finalString,"- ");
 		strcat(finalString,menuSections[currentSectionNumber].sectionName);
 		strcat(finalString," -");
-	} else if (currentCPU==MED_OC) {
+	} else if (currentCPU==OC_NO) {
 		strcpy(finalString,menuSections[currentSectionNumber].sectionName);
 	} else {
 		strcpy(finalString,"+ ");
@@ -135,13 +146,17 @@ void setupDecorations() {
 }
 
 void updateScreen() {
-	drawGameList();
-	setupDecorations();
-	if (pictureMode) {
-		displayGamePicture();
-	}
-	if (hotKeyPressed) {
-		showLetter();
+	if (!leftOrRightPressed&&!isUSBMode) {
+		drawGameList();
+		setupDecorations();
+		if (pictureMode) {
+			displayGamePicture();
+		}
+		if (hotKeyPressed) {
+			showLetter();
+		}
+	} else if (isUSBMode) {
+		drawUSBScreen();
 	}
 	refreshScreen();
 }
@@ -152,3 +167,5 @@ void setupDisplay() {
 	initializeFonts();
 	initializeDisplay();
 }
+
+
